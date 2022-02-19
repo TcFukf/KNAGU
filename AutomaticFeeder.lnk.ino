@@ -49,8 +49,11 @@ Serial.println("END OF SETUP");
 }// КОНЕЦ SETUP
 
  uint32_t last = 0;
-
+ uint32_t waiting = 0;
+ uint32_t kk = 1000;
 void loop() {
+
+
   
   if (digitalRead(button))
   {
@@ -58,10 +61,14 @@ void loop() {
     Serial.println(Params.portion); Serial.println(Params.period);Serial.println("ПРОВЕРКА КНОНПКИ");
     
   }
-
-  
-  if ( uint32_t(millis()-last) >= (Params.period*1000) )
-  {   
+  //Serial.println(waiting);
+  waiting = Params.period*kk;
+  if ( uint32_t(millis()-last) >= waiting )
+  {
+    Serial.println( uint32_t(millis()-last));
+    Serial.println(waiting);
+Serial.println(Params.period);
+    Serial.println("конец дебаг 1)делта 2)условие");
     last = (uint32_t)millis();
     Serial.println(Params.portion); Serial.println(Params.period);
     motor_move(Params.portion, f , b);
@@ -117,34 +124,37 @@ void motor_move(int portion, int f, int b )
 
 void button_handler()
   { // прибавяет к периоду +10 сек если тап по кнопке или меняет portion если зажать больше чем на 20 сек
-    unsigned int start = millis();
+    unsigned int port = 0;
+    uint32_t start = millis();
+    Serial.println(digitalRead(button));
+    Serial.println(( millis() - start  ));
     while (digitalRead(button) and ( ( millis() - start  ) <= 20*1000 ))
     
       {
         //Serial.println("ЖДУМС");
         uint16_t seconds = millis() - start;
         Serial.print("seconds "); Serial.println(seconds);
-        if ( seconds > 1000 )
+        if ( seconds >= 2000 )
           {
            // VRUM VRUM
            motor_move(5, f , b);
-           Params.portion+= 5;
+           port+= 5;
           }
            
       }
       uint16_t seconds = millis() - start;
-      if (seconds <= 1000)
+      if (seconds <= 2000)
       {
         Params.period+=20;
       }
       else if (seconds >= 20*1000) //  было <= 20*1000 но я тупняк словил астаньте
       {
         Params.period = 0;
-        Params.portion = 0;
+        Params.portion = 10;
       }
      
     Params.period%=(12*60*3600);
-    Params.portion%=3072;
+    if (seconds >=2*1000 and seconds < 20*1000){Params.portion = port;}
   } 
 
 
