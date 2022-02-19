@@ -1,11 +1,14 @@
 #include <string.h>
 #include <avr/eeprom.h>
+#include <LiquidCrystal_I2C.h>
+
 // пины шаговика - 2 ,4 , 6 , 8
 int engine[4] = {2, 4, 6, 8};
 int counter = 0; // для отладки было
 // кнопка
 const byte button = 12;
 const byte button_input = 13; 
+LiquidCrystal_I2C lcd(0x27,16,2);
 
 // пока что  переменные 
 // unsigned int portion ;
@@ -30,18 +33,22 @@ Options Params;
 void setup()
 { 
   Serial.begin(9600);
-  for (int i; i <=3; i++)
+  for (int i; i <=3; i++) // настройка пинов шаговика
   { digitalWrite(engine[i],LOW);
     pinMode(engine[i],OUTPUT);
    }
 
-  pinMode(button,INPUT);
+  pinMode(button,INPUT); // настройка кнопки
   pinMode(button_input,OUTPUT);
   digitalWrite(button,0);
   digitalWrite(button_input,1);
   
 
-  eeprom_read_block((void*)&Params, 0, sizeof(Params));
+  eeprom_read_block((void*)&Params, 0, sizeof(Params));  // читаем period и portion из энергонезависимой памяти (пока что не сохраняется ибо так дебажить проще)
+  
+  
+  display_update(Params.portion,Params.period);
+    
   
     
 
@@ -50,7 +57,7 @@ Serial.println("END OF SETUP");
 
  uint32_t last = 0;
  uint32_t waiting = 0;
- uint32_t kk = 1000;
+ uint32_t rate = 1000; // при  rate = 1000 переводит ожидание period из миллисек в сек
 void loop() {
 
 
@@ -58,19 +65,20 @@ void loop() {
   if (digitalRead(button))
   {
     button_handler();
-    Serial.println(Params.portion); Serial.println(Params.period);Serial.println("ПРОВЕРКА КНОНПКИ");
-    
+    Serial.println("ПРОВЕРКА КНОНПКИ:\nportion    period");
+    Serial.print(Params.portion); Serial.print("        ") ;Serial.println(Params.period);
+    display_update(Params.portion,Params.period); 
   }
-  //Serial.println(waiting);
-  waiting = Params.period*kk;
+
+  // display_update(Params.portion,Parama.period);
+  
+  waiting = Params.period*rate; 
   if ( uint32_t(millis()-last) >= waiting )
   {
-    Serial.println( uint32_t(millis()-last));
-    Serial.println(waiting);
-Serial.println(Params.period);
-    Serial.println("конец дебаг 1)делта 2)условие");
+    
+    Serial.println("portion:     period");
     last = (uint32_t)millis();
-    Serial.println(Params.portion); Serial.println(Params.period);
+    Serial.print(Params.portion); Serial.print(" ") ;Serial.println(Params.period);
     motor_move(Params.portion, f , b);
   }
  
@@ -83,7 +91,7 @@ Serial.println(Params.period);
 
 
 
-void move_motor_back(int n)
+void move_motor_forward(int n)
   {   for (int t = 0 ; t <= n;  t++ )
         { // цикл n оборотов вперед
         for (int i = 0; i<=3; i++ )
@@ -97,7 +105,7 @@ void move_motor_back(int n)
 
 
 
-void move_motor_forward(int n )
+void move_motor_back(int n )
   {
       for (int t = 0 ; t <= int(n);  t++ )
       { // кол во оборотов назад
@@ -123,13 +131,13 @@ void motor_move(int portion, int f, int b )
 
 
 int button_handler()
-  { // прибавяет к периоду +10 сек если тап по кнопке или меняет portion если зажать больше чем на 20 сек
+  { // прибавяет к периоду +10 сек если тап по кнопке или меняет portion если зажать больше чем на 2 сек
     static uint32_t last_call = millis() + 120;
     
     unsigned int port = 0;
     uint32_t start = millis();
     uint8_t increment = 20;
-    uint32_t params_reset = 20*1000;
+    uint32_t params_reset = 50*1000;
     uint16_t click_time = 2000; // в миллисек
 
     
@@ -145,8 +153,8 @@ int button_handler()
         if ( seconds >= click_time )
           {
            // VRUM VRUM
-           motor_move(5, f , b);
-           port+= 5;
+           motor_move(10, f , b);
+           port+= 10;
           }
            
       }
@@ -157,7 +165,7 @@ int button_handler()
       }
       else if (seconds >= params_reset) //  было <= params_reset но я тупняк словил астаньте
       {
-        Params.period = 10;
+        Params.period = 60;
         Params.portion = 0;
       }
      
@@ -171,7 +179,28 @@ int button_handler()
 
 
 
-
+int display_update(uint8_t portion , uint8_t period)
+  {
+    static uint16_t value_portion = portion; 
+    static uint16_t value_period = period;
+    static String  text_portion = "eat:";
+    static String  text_period = "delay:";
+    static LiquidCrystal_I2C lcd(0x27,16,2);
+    lcd.init();  // настройка дисплея
+    if (value_portion != portion or value_period != period )
+      {
+        value_portion  = portion;
+        value_period = period;
+      }
+    
+    lcd.setCursor(0, 0); // 1 строка
+    lcd.print(text_portion);
+    lcd.print(value_portion);
+    lcd.setCursor(0, 1);
+    lcd.print(text_period);
+    lcd.print(value_period);
+       
+  }
 
 
 void print_array(int *a,int N){
