@@ -20,7 +20,7 @@ const uint8_t b = 2;
 
 // так проще записать в eeprom память
 struct Options { 
-  unsigned int portion;
+  unsigned int portion; // кол-во кругов 
   unsigned int period;
 };
 
@@ -45,8 +45,8 @@ void setup()
   
 
   eeprom_read_block((void*)&Params, 0, sizeof(Params));  // читаем period и portion из энергонезависимой памяти (пока что не сохраняется ибо так дебажить проще)
-  
-  
+  Params.portion = 1; // в памяте еще по старой логике portion=100
+  Params.period = 60;
   display_update(Params.portion,Params.period);
     
   
@@ -60,14 +60,13 @@ Serial.println("END OF SETUP");
  uint32_t rate = 1000; // при  rate = 1000 переводит ожидание period из миллисек в сек
 void loop() {
 
-
   
   if (digitalRead(button))
   {
     button_handler();
     Serial.println("ПРОВЕРКА КНОНПКИ:\nportion    period");
     Serial.print(Params.portion); Serial.print("        ") ;Serial.println(Params.period);
-    display_update(Params.portion,Params.period); 
+     
   }
 
   // display_update(Params.portion,Parama.period);
@@ -79,9 +78,9 @@ void loop() {
     Serial.println("portion:     period");
     last = (uint32_t)millis();
     Serial.print(Params.portion); Serial.print(" ") ;Serial.println(Params.period);
-    motor_move(Params.portion, f , b);
+    motor_move(Params.portion*64*8, f , b); // 64*8 == 1 круг
   }
- 
+ if (millis()%5000 <= 10) {display_update(Params.portion,Params.period);}
   
 }// КОНЕЦ
 
@@ -137,7 +136,7 @@ int button_handler()
     unsigned int port = 0;
     uint32_t start = millis();
     uint8_t increment = 20;
-    uint32_t params_reset = 50*1000;
+    uint32_t params_reset = 11*1000;
     uint16_t click_time = 2000; // в миллисек
 
     
@@ -150,11 +149,11 @@ int button_handler()
         //Serial.println("ЖДУМС");
         uint16_t seconds = millis() - start;
         Serial.print("seconds "); Serial.println(seconds);
-        if ( seconds >= click_time )
+        if ( seconds >= click_time and seconds%1000 <= 10 )
           {
-           // VRUM VRUM
-           motor_move(10, f , b);
-           port+= 10;
+           Serial.println("ПРОШЛА 1 сек");
+           Params.portion+=1;
+           display_update(Params.portion,Params.period);
           }
            
       }
@@ -170,8 +169,6 @@ int button_handler()
       }
      
     
-    if (seconds >=click_time and seconds < params_reset){Params.portion = port;}
-    
     Params.period%=(12*3600);
     last_call = millis();
   } 
@@ -179,27 +176,32 @@ int button_handler()
 
 
 
-int display_update(uint8_t portion , uint8_t period)
+int display_update(uint16_t portion , uint16_t period)
   {
     static uint16_t value_portion = portion; 
     static uint16_t value_period = period;
     static String  text_portion = "eat:";
     static String  text_period = "delay:";
     static LiquidCrystal_I2C lcd(0x27,16,2);
-    lcd.init();  // настройка дисплея
-    if (value_portion != portion or value_period != period )
+    static boolean called = false;
+    if (not called) {lcd.init();}  // настройка дисплея если функц вызывается впервые
+    else if (value_portion != portion or value_period != period )
       {
         value_portion  = portion;
         value_period = period;
       }
-    
+    lcd.clear();
     lcd.setCursor(0, 0); // 1 строка
     lcd.print(text_portion);
     lcd.print(value_portion);
     lcd.setCursor(0, 1);
     lcd.print(text_period);
     lcd.print(value_period);
-       
+    Serial.print("waitint - (mil()- last) "); Serial.println((waiting-( millis()-last ) )/1000);
+    lcd.print(" t:");
+    if ( (waiting-( millis()-last ) )/1000  != 4294966) {lcd.print((waiting-( millis()-last ) )/1000 );}
+    
+    called = true;
   }
 
 
