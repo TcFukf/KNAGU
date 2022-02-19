@@ -122,19 +122,27 @@ void motor_move(int portion, int f, int b )
   }
 
 
-void button_handler()
+int button_handler()
   { // прибавяет к периоду +10 сек если тап по кнопке или меняет portion если зажать больше чем на 20 сек
+    static uint32_t last_call = millis() + 120;
+    
     unsigned int port = 0;
     uint32_t start = millis();
+    uint8_t increment = 20;
+    uint32_t params_reset = 20*1000;
+    uint16_t click_time = 2000; // в миллисек
+
+    
+    if ( last_call - millis() < 100 ) {return 10; }
     Serial.println(digitalRead(button));
     Serial.println(( millis() - start  ));
-    while (digitalRead(button) and ( ( millis() - start  ) <= 20*1000 ))
+    while (digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
     
       {
         //Serial.println("ЖДУМС");
         uint16_t seconds = millis() - start;
         Serial.print("seconds "); Serial.println(seconds);
-        if ( seconds >= 2000 )
+        if ( seconds >= click_time )
           {
            // VRUM VRUM
            motor_move(5, f , b);
@@ -143,19 +151,23 @@ void button_handler()
            
       }
       uint16_t seconds = millis() - start;
-      if (seconds <= 2000)
+      if (seconds <= click_time)
       {
-        Params.period+=20;
+        Params.period+=increment;
       }
-      else if (seconds >= 20*1000) //  было <= 20*1000 но я тупняк словил астаньте
+      else if (seconds >= params_reset) //  было <= params_reset но я тупняк словил астаньте
       {
-        Params.period = 0;
-        Params.portion = 10;
+        Params.period = 10;
+        Params.portion = 0;
       }
      
-    Params.period%=(12*60*3600);
-    if (seconds >=2*1000 and seconds < 20*1000){Params.portion = port;}
+    
+    if (seconds >=click_time and seconds < params_reset){Params.portion = port;}
+    
+    Params.period%=(12*3600);
+    last_call = millis();
   } 
+  
 
 
 
