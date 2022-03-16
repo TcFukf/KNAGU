@@ -61,7 +61,7 @@ Serial.println("END OF SETUP");
 void loop() {
 
   
-  if (digitalRead(button))
+  if (!digitalRead(button))
   {
     button_handler();
     Serial.println("ПРОВЕРКА КНОНПКИ:\nportion    period");
@@ -141,9 +141,9 @@ int button_handler()
 
     
     if ( last_call - millis() < 100 ) {return 10; }
-    Serial.println(digitalRead(button));
+    Serial.println(!digitalRead(button));
     Serial.println(( millis() - start  ));
-    while (digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
+    while (!digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
     
       {
         //Serial.println("ЖДУМС");
