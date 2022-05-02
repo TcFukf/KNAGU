@@ -15,8 +15,8 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 // unsigned int period ; // в секундах
 
 // шаги вперед назад шаговика
-const uint8_t f = 7;
-const uint8_t b = 2;
+const uint8_t f = 17;
+const uint8_t b = 3;
 
 // так проще записать в eeprom память
 struct Options { 
@@ -46,7 +46,7 @@ void setup()
 
   eeprom_read_block((void*)&Params, 0, sizeof(Params));  // читаем period и portion из энергонезависимой памяти (пока что не сохраняется ибо так дебажить проще)
   Params.portion = 1; // в памяте еще по старой логике portion=100
-  Params.period = 60;
+  Params.period = 20;
   display_update(Params.portion,Params.period);
     
   
@@ -55,9 +55,10 @@ void setup()
 Serial.println("END OF SETUP");
 }// КОНЕЦ SETUP
 
- uint32_t last = 0;
- uint32_t waiting = 0;
+
  uint32_t rate = 1000; // при  rate = 1000 переводит ожидание period из миллисек в сек
+ uint32_t last = -9999999;
+ uint32_t waiting = 0;
 void loop() {
 
   
@@ -69,18 +70,19 @@ void loop() {
      
   }
 
-  // display_update(Params.portion,Parama.period);
-  
+
+  bool is_near = true;// здесь условие от звукового датчика
   waiting = Params.period*rate; 
-  if ( uint32_t(millis()-last) >= waiting )
+  if (  ( uint32_t(millis()-last) >= waiting )  and ( is_near ) )
   {
     
     Serial.println("portion:     period");
     last = (uint32_t)millis();
     Serial.print(Params.portion); Serial.print(" ") ;Serial.println(Params.period);
-    motor_move(Params.portion*64*8, f , b); // 64*8 == 1 круг
+    Serial.println(f);
+    motor_move(Params.portion*64*8*8/9, f , b); // 64*8 == 1 круг
   }
- if (millis()%5000 <= 10) {display_update(Params.portion,Params.period);}
+ if (millis()%500 <= 10) {display_update(Params.portion,Params.period);}
   
 }// КОНЕЦ
 
@@ -96,7 +98,7 @@ void move_motor_forward(int n)
         for (int i = 0; i<=3; i++ )
           { // цикл 1 оборота
           digitalWrite(engine[i],HIGH);
-          delayMicroseconds(2000); // лучше использовать асинхрон. делей
+          delayMicroseconds(3000); // лучше использовать асинхрон. делей
           digitalWrite(engine[i],LOW);
           }
         } 
@@ -106,12 +108,12 @@ void move_motor_forward(int n)
 
 void move_motor_back(int n )
   {
-      for (int t = 0 ; t <= int(n);  t++ )
+      for (int t = 0 ; t < int(n);  t++ )
       { // кол во оборотов назад
         for (int i = 3; i>=0; i-=1 )
         {
           digitalWrite(engine[i],HIGH);
-          delayMicroseconds(2000);
+          delayMicroseconds(3000);
           digitalWrite(engine[i],LOW);
         }
       }
@@ -119,10 +121,12 @@ void move_motor_back(int n )
   }
 
 
-void motor_move(int portion, int f, int b )
-  {
-    for (int c = 0 ; c <= portion; c++ )
-    {
+int motor_move(int portion, int f, int b )
+  { 
+    Serial.println(portion/(f-b));
+    for (int c = 0 ; c <= portion/(f-b); c++ )
+    { 
+      if (!digitalRead(button) ) {delay(1500); return ;}
        move_motor_forward(f);
        move_motor_back(b);
     }
@@ -130,7 +134,7 @@ void motor_move(int portion, int f, int b )
 
 
 int button_handler()
-  { // прибавяет к периоду +10 сек если тап по кнопке или меняет portion если зажать больше чем на 2 сек
+  { // прибавяет к периоду "increment" сек если тап по кнопке или меняет portion если зажать больше чем на 2 сек
     static uint32_t last_call = millis() + 120;
     
     unsigned int port = 0;
@@ -197,7 +201,7 @@ int display_update(uint16_t portion , uint16_t period)
     lcd.setCursor(0, 1);
     lcd.print(text_period);
     lcd.print(value_period);
-    Serial.print("waitint - (mil()- last) "); Serial.println((waiting-( millis()-last ) )/1000);
+    Serial.print("waiting - (mil()- last) "); Serial.println((waiting-( millis()-last ) )/1000);
     lcd.print(" t:");
     if ( (waiting-( millis()-last ) )/1000  != 4294966) {lcd.print((waiting-( millis()-last ) )/1000 );}
     
