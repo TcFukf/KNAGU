@@ -39,9 +39,9 @@ void setup()
    }
 
   pinMode(button,INPUT); // настройка кнопки
-  pinMode(button_input,OUTPUT);
+  //pinMode(button_input,OUTPUT);
   digitalWrite(button,0);
-  digitalWrite(button_input,1);
+  //digitalWrite(button_input,1);
   
 
   eeprom_read_block((void*)&Params, 0, sizeof(Params));  // читаем period и portion из энергонезависимой памяти (пока что не сохраняется ибо так дебажить проще)
