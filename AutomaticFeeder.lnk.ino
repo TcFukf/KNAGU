@@ -1,6 +1,7 @@
+#include <LiquidCrystal_I2C.h>
 #include <string.h>
 #include <avr/eeprom.h>
-#include <LiquidCrystal_I2C.h>
+
 
 // пины шаговика - 2 ,4 , 6 , 8
 int engine[4] = {2, 4, 6, 8};
@@ -17,7 +18,8 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 // шаги вперед назад шаговика
 const uint8_t f = 17;
 const uint8_t b = 3;
-
+//обновление экрана
+const uint8_t frequency = 500;
 // так проще записать в eeprom память
 struct Options { 
   unsigned int portion; // кол-во кругов 
@@ -48,8 +50,7 @@ void setup()
   Params.portion = 1; // в памяте еще по старой логике portion=100
   Params.period = 20;
   display_update(Params.portion,Params.period);
-    
-  
+
     
 
 Serial.println("END OF SETUP");
@@ -57,7 +58,7 @@ Serial.println("END OF SETUP");
 
 
  uint32_t rate = 1000; // при  rate = 1000 переводит ожидание period из миллисек в сек
- uint32_t last = -9999999;
+ uint32_t last = -1;
  uint32_t waiting = 0;
 void loop() {
 
@@ -82,7 +83,7 @@ void loop() {
     Serial.println(f);
     motor_move(Params.portion*64*8*8/9, f , b); // 64*8 == 1 круг
   }
- if (millis()%500 <= 10) {display_update(Params.portion,Params.period);}
+ if (millis()%frequency <= 10) {display_update(Params.portion,Params.period);}
   
 }// КОНЕЦ
 
@@ -144,7 +145,7 @@ int button_handler()
     uint16_t click_time = 2000; // в миллисек
 
     
-    if ( last_call - millis() < 100 ) {return 10; }
+    if ( last_call - millis() < 100 ) {return ; }
     Serial.println(!digitalRead(button));
     Serial.println(( millis() - start  ));
     while (!digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
@@ -195,6 +196,7 @@ int display_update(uint16_t portion , uint16_t period)
         value_period = period;
       }
     lcd.clear();
+    lcd.backlight();
     lcd.setCursor(0, 0); // 1 строка
     lcd.print(text_portion);
     lcd.print(value_portion);
