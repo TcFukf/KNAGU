@@ -63,10 +63,10 @@ Serial.println("END OF SETUP");
 void loop() {
 
   
-  if (!digitalRead(button))
+  if (digitalRead(button))
   {
     button_handler();
-    Serial.println("ПРОВЕРКА КНОНПКИ:\nportion    period");
+    Serial.println("ПРОВЕРКА КНОПКИ:\nportion    period");
     Serial.print(Params.portion); Serial.print("        ") ;Serial.println(Params.period);
      
   }
@@ -127,7 +127,7 @@ int motor_move(int portion, int f, int b )
     Serial.println(portion/(f-b));
     for (int c = 0 ; c <= portion/(f-b); c++ )
     { 
-      if (!digitalRead(button) ) {delay(1500); return ;}
+      if (digitalRead(button) ) {delay(1500); return ;}
        move_motor_forward(f);
        move_motor_back(b);
     }
@@ -146,12 +146,11 @@ int button_handler()
 
     
     if ( last_call - millis() < 100 ) {return ; }
-    Serial.println(!digitalRead(button));
+    Serial.println(digitalRead(button));
     Serial.println(( millis() - start  ));
-    while (!digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
+    while (digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
     
       {
-        //Serial.println("ЖДУМС");
         uint16_t seconds = millis() - start;
         Serial.print("seconds "); Serial.println(seconds);
         if ( seconds >= click_time and seconds%1000 <= 10 )
