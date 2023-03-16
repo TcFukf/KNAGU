@@ -203,9 +203,9 @@ int display_update(uint16_t portion , uint16_t period)
     lcd.setCursor(0, 1);
     lcd.print(text_period);
     lcd.print(value_period);
-    Serial.print("waiting - (mil()- last) "); Serial.println((waiting-( millis()-last ) )/1000);
+    Serial.print("waiting - (mil()- last) "); Serial.println((waiting-( millis()-last ) )/rate); 
     lcd.print(time_until_start); // 
-    if ( (waiting-( millis()-last ) )/1000  != 4294966) {lcd.print((waiting-( millis()-last ) )/1000 );}
+    if ( (waiting-( millis()-last ) )/1000  != 4294966) {lcd.print((waiting-( millis()-last ) )/rate );}
     
     called = true;
   }
