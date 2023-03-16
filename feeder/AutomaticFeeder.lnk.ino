@@ -31,7 +31,7 @@ Options Params;
 
 
 
-// SЕТУП БЛИН
+
 void setup()
 { 
   Serial.begin(9600);
@@ -42,12 +42,12 @@ void setup()
 
   pinMode(button,INPUT); // настройка кнопки
   //pinMode(button_input,OUTPUT);
-  digitalWrite(button,0);
+  digitalWrite(button,1); // по умолчанию на кнопке 1
   //digitalWrite(button_input,1);
   
 
-  eeprom_read_block((void*)&Params, 0, sizeof(Params));  // читаем period и portion из энергонезависимой памяти (пока что не сохраняется ибо так дебажить проще)
-  Params.portion = 1; // в памяте еще по старой логике portion=100
+  eeprom_read_block((void*)&Params, 0, sizeof(Params));  // читаем period и portion из энергонезависимой памяти (пока что каждый раз обновляется, тк так проверять проще)
+  Params.portion = 1; 
   Params.period = 20;
   display_update(Params.portion,Params.period);
 
@@ -63,7 +63,7 @@ Serial.println("END OF SETUP");
 void loop() {
 
   
-  if (digitalRead(button))
+  if (digitalRead(button)==0)
   {
     button_handler();
     Serial.println("ПРОВЕРКА КНОПКИ:\nportion    period");
@@ -72,9 +72,9 @@ void loop() {
   }
 
 
-  bool is_near = true;// здесь условие от звукового датчика
   waiting = Params.period*rate; 
-  if (  ( uint32_t(millis()-last) >= waiting )  and ( is_near ) )
+
+  if (  ( uint32_t(millis()-last) >= waiting ) ) // если пришло время 
   {
     
     Serial.println("portion:     period");
@@ -127,7 +127,7 @@ int motor_move(int portion, int f, int b )
     Serial.println(portion/(f-b));
     for (int c = 0 ; c <= portion/(f-b); c++ )
     { 
-      if (digitalRead(button) ) {delay(1500); return ;}
+      if (digitalRead(button)==0 ) {delay(1500); return ;} // можно нажать кнопку для остановки
        move_motor_forward(f);
        move_motor_back(b);
     }
@@ -140,15 +140,15 @@ int button_handler()
     
     unsigned int port = 0;
     uint32_t start = millis();
-    uint8_t increment = 20;
+    uint8_t increment = 20; // увеличивает period на 20
     uint32_t params_reset = 11*1000;
     uint16_t click_time = 2000; // в миллисек
 
     
-    if ( last_call - millis() < 100 ) {return ; }
+    if ( last_call - millis() < 100 ) {return ; } // проверка на дребезг кнопки
     Serial.println(digitalRead(button));
     Serial.println(( millis() - start  ));
-    while (digitalRead(button) and ( ( millis() - start  ) <= params_reset ))
+    while (digitalRead(button)==0 and ( ( millis() - start  ) <= params_reset ))
     
       {
         uint16_t seconds = millis() - start;
