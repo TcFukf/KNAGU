@@ -99,7 +99,7 @@ void move_motor_forward(int n)
         for (int i = 0; i<=3; i++ )
           { // цикл 1 оборота
           digitalWrite(engine[i],HIGH);
-          delayMicroseconds(3000); // лучше использовать асинхрон. делей
+          delayMicroseconds(3000); 
           digitalWrite(engine[i],LOW);
           }
         } 
@@ -166,7 +166,7 @@ int button_handler()
       {
         Params.period+=increment;
       }
-      else if (seconds >= params_reset) //  было <= params_reset но я тупняк словил астаньте
+      else if (seconds >= params_reset) 
       {
         Params.period = 60;
         Params.portion = 0;
@@ -186,6 +186,7 @@ int display_update(uint16_t portion , uint16_t period)
     static uint16_t value_period = period;
     static String  text_portion = "eat:";
     static String  text_period = "delay:";
+    static String  time_until_start = "after:";
     static LiquidCrystal_I2C lcd(0x27,16,2);
     static boolean called = false;
     if (not called) {lcd.init();}  // настройка дисплея если функц вызывается впервые
@@ -203,7 +204,7 @@ int display_update(uint16_t portion , uint16_t period)
     lcd.print(text_period);
     lcd.print(value_period);
     Serial.print("waiting - (mil()- last) "); Serial.println((waiting-( millis()-last ) )/1000);
-    lcd.print(" t:");
+    lcd.print(time_until_start); // 
     if ( (waiting-( millis()-last ) )/1000  != 4294966) {lcd.print((waiting-( millis()-last ) )/1000 );}
     
     called = true;
