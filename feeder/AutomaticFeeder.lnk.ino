@@ -5,7 +5,7 @@
 
 // пины шаговика - 2 ,4 , 6 , 8
 int engine[4] = {2, 4, 6, 8};
-
+LiquidCrystal_I2C lcd(0x27,16,2);
 const byte button = 12;
 // кол-во шагов вперед и назад за 1 цикл
 const uint8_t f = 17;
